@@ -161,22 +161,22 @@
                 <!-- Brightness Slider -->
                 <div class="flex items-center space-x-2">
                     <span class="text-slate-400 w-12 shrink-0">밝기</span>
-                    <input type="range" id="slider-brightness" min="-100" max="100" value="0" oninput="updateFilterFromSliders()" class="w-full accent-indigo-500 bg-slate-800 h-1.5 rounded-lg">
-                    <span id="val-brightness" class="font-mono text-slate-400 w-8 text-right">0</span>
+                    <input type="range" id="slider-brightness" min="-50" max="50" value="15" oninput="updateFilterFromSliders()" class="w-full accent-indigo-500 bg-slate-800 h-1.5 rounded-lg">
+                    <span id="val-brightness" class="font-mono text-slate-400 w-8 text-right">15</span>
                 </div>
 
                 <!-- Contrast Slider -->
                 <div class="flex items-center space-x-2">
                     <span class="text-slate-400 w-12 shrink-0">대비</span>
-                    <input type="range" id="slider-contrast" min="-100" max="100" value="35" oninput="updateFilterFromSliders()" class="w-full accent-indigo-500 bg-slate-800 h-1.5 rounded-lg">
-                    <span id="val-contrast" class="font-mono text-slate-400 w-8 text-right">35</span>
+                    <input type="range" id="slider-contrast" min="-50" max="100" value="40" oninput="updateFilterFromSliders()" class="w-full accent-indigo-500 bg-slate-800 h-1.5 rounded-lg">
+                    <span id="val-contrast" class="font-mono text-slate-400 w-8 text-right">40</span>
                 </div>
 
                 <!-- Threshold Slider -->
                 <div class="flex items-center space-x-2">
-                    <span class="text-slate-400 w-14 shrink-0">선명도</span>
-                    <input type="range" id="slider-threshold" min="50" max="220" value="140" oninput="updateFilterFromSliders()" class="w-full accent-indigo-500 bg-slate-800 h-1.5 rounded-lg">
-                    <span id="val-threshold" class="font-mono text-slate-400 w-8 text-right">140</span>
+                    <span class="text-slate-400 w-14 shrink-0 text-indigo-300 font-semibold">글씨 진하기</span>
+                    <input type="range" id="slider-threshold" min="0" max="200" value="100" oninput="updateFilterFromSliders()" class="w-full accent-indigo-500 bg-slate-800 h-1.5 rounded-lg">
+                    <span id="val-threshold" class="font-mono text-indigo-300 w-8 text-right font-bold">100</span>
                 </div>
             </div>
 
@@ -303,9 +303,9 @@
                     imgElement: img1,
                     rotation: 0,
                     mode: 'auto',
-                    brightness: 0,
-                    contrast: 35,
-                    threshold: 140
+                    brightness: 15,
+                    contrast: 40,
+                    threshold: 100
                 });
                 const img2 = new Image();
                 img2.onload = () => {
@@ -314,9 +314,9 @@
                         imgElement: img2,
                         rotation: 0,
                         mode: 'auto',
-                        brightness: 0,
-                        contrast: 35,
-                        threshold: 140
+                        brightness: 15,
+                        contrast: 40,
+                        threshold: 100
                     });
                     state.activePageIndex = 0;
                     renderApp();
@@ -384,9 +384,9 @@
                             imgElement: img,
                             rotation: 0,
                             mode: 'auto',
-                            brightness: 0,
-                            contrast: 35,
-                            threshold: 140
+                            brightness: 15,
+                            contrast: 40,
+                            threshold: 100
                         });
                         count++;
                         if (count === imageFiles.length) {
@@ -541,7 +541,13 @@
             const b = parseInt(page.brightness || 0);
             const c = parseInt(page.contrast || 0);
             const factor = (259 * (c + 255)) / (255 * (259 - c));
-            const thresh = parseInt(page.threshold || 140);
+            const blackPoint = parseInt(page.threshold || 100); 
+            let whitePoint = Math.max(10, 210 - b); // Background clipping point
+
+            if (blackPoint >= whitePoint) {
+                whitePoint = blackPoint + 1;
+            }
+
             const mode = page.mode || 'auto';
 
             for (let i = 0; i < d.length; i += 4) {
@@ -549,27 +555,33 @@
                 let g = d[i + 1];
                 let bVal = d[i + 2];
 
-                // Contrast & Brightness adjustment
-                if (c !== 0 || b !== 0) {
+                // Contrast & Brightness adjustment for base color
+                if (c !== 0 || b !== 0 && mode !== 'auto') {
                     r = factor * (r - 128) + 128 + b;
                     g = factor * (g - 128) + 128 + b;
                     bVal = factor * (bVal - 128) + 128 + b;
                 }
 
-                const gray = 0.299 * r + 0.587 * g + 0.114 * bVal;
+                let gray = 0.299 * r + 0.587 * g + 0.114 * bVal;
 
                 if (mode === 'grayscale') {
                     d[i] = d[i + 1] = d[i + 2] = Math.min(255, Math.max(0, gray));
                 } else if (mode === 'auto') {
-                    // Smart Document Binarization (Whiten yellow paper background, crisp text/graphics)
-                    let v;
-                    if (gray > thresh) {
-                        v = 255; // Remove yellow shadow background completely to clean white
-                    } else {
-                        // Deepen dark text & drawings
-                        v = Math.max(0, (gray / thresh) * 210 - 25);
+                    // Smart Document Enhancement (Black/White Level Stretch)
+                    // Apply base contrast/brightness to grayscale first
+                    if (c !== 0 || b !== 0) {
+                         gray = factor * (gray - 128) + 128 + (b * 0.5);
                     }
-                    d[i] = d[i + 1] = d[i + 2] = v;
+
+                    if (gray > whitePoint) {
+                        gray = 255; // Clear paper background entirely
+                    } else if (gray < blackPoint) {
+                        gray = 0; // Thicken and darken text completely
+                    } else {
+                        // Smooth edge anti-aliasing interpolation
+                        gray = ((gray - blackPoint) / (whitePoint - blackPoint)) * 255;
+                    }
+                    d[i] = d[i + 1] = d[i + 2] = Math.min(255, Math.max(0, gray));
                 } else { // Color mode with brightness/contrast
                     d[i] = Math.min(255, Math.max(0, r));
                     d[i + 1] = Math.min(255, Math.max(0, g));
@@ -640,9 +652,9 @@
         function resetCurrentFilters() {
             const page = state.pages[state.activePageIndex];
             if (page) {
-                page.brightness = 0;
-                page.contrast = 35;
-                page.threshold = 140;
+                page.brightness = 15;
+                page.contrast = 40;
+                page.threshold = 100;
                 page.mode = 'auto';
                 page.rotation = 0;
                 renderApp();
