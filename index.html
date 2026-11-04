@@ -35,7 +35,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
   <style>
-    /* PDF 출력용 전공 요약본 템플릿 디자인 */
     .pdf-template {
       font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
       color: #1e293b;
@@ -333,6 +332,29 @@
       updatePreview();
     }
 
+    // ★ 에러 방지: 사용자 API 키로 접근 가능한 최신 모델을 자동 검색하는 기능 추가
+    async function getAvailableModel(key) {
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+        if (res.ok) {
+          const data = await res.json();
+          // generateContent를 지원하는 가장 좋은 모델(flash 우선) 필터링
+          if (data.models) {
+            const validModels = data.models.filter(m => 
+              m.supportedGenerationMethods?.includes('generateContent') && 
+              (m.name.includes('flash') || m.name.includes('pro'))
+            );
+            if (validModels.length > 0) {
+              return validModels[0].name.replace('models/', ''); // 예: gemini-1.5-flash
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('모델 자동 검색 실패, 기본값 사용');
+      }
+      return 'gemini-1.5-flash'; // 기본 안전 모델
+    }
+
     async function runOCR() {
       if (!currentImageBase64) {
         alert('스캔할 책 사진을 먼저 업로드해 주세요.');
@@ -346,15 +368,19 @@
 
       const btn = document.getElementById('btn-ocr');
       btn.disabled = true;
-      btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>AI 정밀 분석 중...</span>`;
+      btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>최적 모델 검색 및 AI 분석 중...</span>`;
       lucide.createIcons();
 
       try {
+        // 1. 동적 모델 탐색 (에러 원천 차단)
+        const activeModel = await getAvailableModel(apiKey);
+        console.log("선택된 모델:", activeModel);
+
         const base64Data = currentImageBase64.split(',')[1];
         const promptText = "첨부된 책/문서 이미지의 텍스트, 수식, 표를 마크다운(Markdown) 형식으로 최대한 정확하게 추출해줘. 문서의 큰 제목은 #, 소제목은 ##를 사용하고, 강조할 수식이나 핵심 단어는 <mark>내용</mark> 태그로 감싸줘. 표는 반드시 마크다운 테이블 형식(| |)으로 변환해줘.";
 
-        // 오류 해결: 구글 정책 변경에 따라 최신 모델인 gemini-3.0-flash로 업데이트 완료
-        const endpointUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.0-flash:generateContent?key=${apiKey}`;
+        // 2. 검색된 모델 주소로 요청 전송
+        const endpointUrl = `https://generativelanguage.googleapis.com/v1beta/models/${activeModel}:generateContent?key=${apiKey}`;
 
         const response = await fetch(endpointUrl, {
           method: 'POST',
