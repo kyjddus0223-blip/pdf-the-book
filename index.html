@@ -1,732 +1,416 @@
 <!DOCTYPE html>
 <html lang="ko" class="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ScanBook Studio - 스캔 사진 묶음 PDF 변환기</title>
-
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        slate: {
-                            850: '#131e32',
-                            950: '#070d18'
-                        }
-                    }
-                }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ScanBook AI - 스마트 디지털 텍스트 & PDF 변환기</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              900: '#1e3a8a'
             }
+          }
         }
-    </script>
+      }
+    }
+  </script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
 
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Marked (Markdown Parser) -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- html2pdf.js for Client-Side PDF Generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-    <!-- jsPDF Library for High-Quality Image PDF Bundling -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-    <style>
-        body { font-family: 'Noto Sans KR', sans-serif; }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); }
-        ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.5); }
-
-        .checker-bg {
-            background-color: #0f172a;
-            background-image: linear-gradient(45deg, #1e293b 25%, transparent 25%),
-                              linear-gradient(-45deg, #1e293b 25%, transparent 25%),
-                              linear-gradient(45deg, transparent 75%, #1e293b 75%),
-                              linear-gradient(-45deg, transparent 75%, #1e293b 75%);
-            background-size: 20px 20px;
-            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-        }
-    </style>
+  <style>
+    /* Custom PDF Design Template */
+    .pdf-template {
+      font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+      color: #1e293b;
+      line-height: 1.6;
+      background-color: #ffffff;
+      padding: 40px;
+      width: 800px;
+      margin: 0 auto;
+    }
+    .pdf-template h1 {
+      font-size: 26px;
+      font-weight: 800;
+      color: #1e3a8a;
+      border-bottom: 3px solid #1e3a8a;
+      padding-bottom: 8px;
+      margin-top: 0;
+      margin-bottom: 16px;
+    }
+    .pdf-template h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1d4ed8;
+      background-color: #eff6ff;
+      padding: 8px 14px;
+      border-left: 5px solid #2563eb;
+      border-radius: 0 6px 6px 0;
+      margin-top: 24px;
+      margin-bottom: 12px;
+    }
+    .pdf-template h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1e40af;
+      margin-top: 16px;
+      margin-bottom: 8px;
+    }
+    .pdf-template p {
+      margin-bottom: 10px;
+      font-size: 13.5px;
+      word-break: keep-all;
+    }
+    .pdf-template ul, .pdf-template ol {
+      margin-bottom: 12px;
+      padding-left: 20px;
+      font-size: 13.5px;
+    }
+    .pdf-template li {
+      margin-bottom: 4px;
+    }
+    .pdf-template table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 12.5px;
+    }
+    .pdf-template th {
+      background-color: #f1f5f9;
+      color: #334155;
+      font-weight: 700;
+      padding: 8px 12px;
+      border: 1px solid #cbd5e1;
+      text-align: left;
+    }
+    .pdf-template td {
+      padding: 7px 12px;
+      border: 1px solid #cbd5e1;
+    }
+    .pdf-template mark {
+      background-color: #fef08a;
+      color: #854d0e;
+      padding: 2px 5px;
+      border-radius: 3px;
+      font-weight: 600;
+    }
+    .pdf-template blockquote {
+      border-left: 4px solid #94a3b8;
+      background-color: #f8fafc;
+      padding: 10px 14px;
+      margin: 12px 0;
+      color: #475569;
+      font-size: 13px;
+    }
+    .pdf-template code {
+      background-color: #f1f5f9;
+      color: #0f172a;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+  </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-brand-500 selection:text-white">
 
-    <!-- Navigation Bar -->
-    <header class="h-16 border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-40 flex items-center justify-between px-4 sm:px-6">
-        <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-violet-600 to-emerald-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                <i data-lucide="file-check-2" class="w-6 h-6 text-white"></i>
-            </div>
-            <div>
-                <h1 class="font-bold text-base sm:text-lg leading-tight text-white flex items-center gap-2">
-                    ScanBook Studio
-                    <span class="text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full font-normal">방식 1: 보정 이미지 묶음 PDF</span>
-                </h1>
-                <p class="text-xs text-slate-400">사진 보정 & 그림·수식 100% 보존 PDF 제작</p>
-            </div>
+  <!-- Header -->
+  <header class="border-b border-slate-800 bg-slate-950/80 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="p-2 bg-brand-600 rounded-xl shadow-lg shadow-brand-500/20">
+          <i data-lucide="sparkles" class="w-5 h-5 text-white"></i>
         </div>
-
-        <!-- Action Buttons -->
-        <div class="flex items-center space-x-2">
-            <button onclick="loadSampleScanBook()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-medium transition flex items-center space-x-1.5">
-                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
-                <span class="hidden sm:inline">샘플 불러오기</span>
-            </button>
-
-            <label class="cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5">
-                <i data-lucide="plus" class="w-4 h-4 text-indigo-400"></i>
-                <span>사진 추가</span>
-                <input type="file" id="file-input" multiple accept="image/*" class="hidden" onchange="handleFileUpload(event)">
-            </label>
-
-            <button onclick="exportToPdfBundle()" class="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition shadow-lg shadow-indigo-600/30 flex items-center space-x-2">
-                <i data-lucide="download" class="w-4 h-4"></i>
-                <span>PDF 내보내기</span>
-            </button>
+        <div>
+          <h1 class="font-bold text-lg leading-none">ScanBook AI</h1>
+          <p class="text-xs text-slate-400 mt-1">스캔 사진 ➔ 깔끔한 디지털 텍스트 & PDF 변환</p>
         </div>
-    </header>
-
-    <!-- Main Workspace Layout -->
-    <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
-        
-        <!-- LEFT PANEL: Page Navigation & Thumbnails Bar -->
-        <div class="w-full md:w-72 border-r border-slate-800 bg-slate-900/70 flex flex-col h-auto md:h-full shrink-0">
-            <div class="p-3 border-b border-slate-800 flex items-center justify-between text-xs text-slate-400 font-medium">
-                <span class="flex items-center space-x-1.5 text-slate-200 font-semibold">
-                    <i data-lucide="layers" class="w-4 h-4 text-indigo-400"></i>
-                    <span>페이지 순서 (<span id="total-page-count">0</span>장)</span>
-                </span>
-                <button onclick="clearAllPages()" class="hover:text-rose-400 text-[11px] transition">전체 삭제</button>
-            </div>
-
-            <!-- Page Thumbnails List -->
-            <div id="thumbnail-list" class="flex-1 overflow-y-auto p-3 space-y-2.5 max-h-48 md:max-h-none">
-                <!-- Page item cards rendered dynamically -->
-            </div>
-
-            <!-- Drag & Drop Upload Zone -->
-            <div class="p-3 border-t border-slate-800 bg-slate-950/40">
-                <div id="drop-zone" onclick="document.getElementById('file-input').click()" class="border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-xl p-4 text-center cursor-pointer transition bg-slate-900/40 hover:bg-indigo-950/20 group">
-                    <i data-lucide="upload-cloud" class="w-7 h-7 mx-auto text-slate-500 group-hover:text-indigo-400 mb-1 transition"></i>
-                    <p class="text-xs text-slate-300 font-medium">책 사진 추가하기</p>
-                    <p class="text-[10px] text-slate-500 mt-0.5">드래그 앤 드롭 또는 클릭</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- CENTER / MAIN PANEL: Image Processing Canvas & Live Controls -->
-        <div class="flex-1 bg-slate-950 flex flex-col h-full overflow-hidden">
-            
-            <!-- Filter Toolbar Controls -->
-            <div class="bg-slate-900 border-b border-slate-800 p-3 flex flex-wrap items-center justify-between gap-3 text-xs z-10">
-                
-                <!-- Quick Mode Presets -->
-                <div class="flex items-center space-x-1.5">
-                    <span class="text-slate-400 font-medium mr-1">보정 모드:</span>
-                    <button onclick="setMode('auto')" id="mode-btn-auto" class="px-2.5 py-1 rounded-md border font-medium transition flex items-center space-x-1 bg-indigo-600 border-indigo-500 text-white">
-                        <i data-lucide="wand-2" class="w-3.5 h-3.5"></i>
-                        <span>자동 흑백/대비</span>
-                    </button>
-                    <button onclick="setMode('grayscale')" id="mode-btn-grayscale" class="px-2.5 py-1 rounded-md border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
-                        <span>그레이스케일</span>
-                    </button>
-                    <button onclick="setMode('color')" id="mode-btn-color" class="px-2.5 py-1 rounded-md border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
-                        <span>컬러 원본</span>
-                    </button>
-                </div>
-
-                <!-- Rotation & Reset Buttons -->
-                <div class="flex items-center space-x-2">
-                    <div class="flex rounded-lg bg-slate-800 border border-slate-700 p-0.5">
-                        <button onclick="rotateCurrentPage(-90)" class="p-1 hover:bg-slate-700 text-slate-300 rounded" title="반시계 90도 회전">
-                            <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
-                        </button>
-                        <button onclick="rotateCurrentPage(90)" class="p-1 hover:bg-slate-700 text-slate-300 rounded" title="시계 90도 회전">
-                            <i data-lucide="rotate-cw" class="w-4 h-4"></i>
-                        </button>
-                    </div>
-
-                    <button onclick="resetCurrentFilters()" class="px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 border border-slate-700 transition flex items-center space-x-1" title="필터 초기화">
-                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-                        <span>초기화</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Fine-Tuning Sliders Bar -->
-            <div class="bg-slate-900/60 border-b border-slate-800 px-4 py-2.5 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                <!-- Brightness Slider -->
-                <div class="flex items-center space-x-2">
-                    <span class="text-slate-400 w-12 shrink-0">밝기</span>
-                    <input type="range" id="slider-brightness" min="-50" max="50" value="15" oninput="updateFilterFromSliders()" class="w-full accent-indigo-500 bg-slate-800 h-1.5 rounded-lg">
-                    <span id="val-brightness" class="font-mono text-slate-400 w-8 text-right">15</span>
-                </div>
-
-                <!-- Contrast Slider -->
-                <div class="flex items-center space-x-2">
-                    <span class="text-slate-400 w-12 shrink-0">대비</span>
-                    <input type="range" id="slider-contrast" min="-50" max="100" value="40" oninput="updateFilterFromSliders()" class="w-full accent-indigo-500 bg-slate-800 h-1.5 rounded-lg">
-                    <span id="val-contrast" class="font-mono text-slate-400 w-8 text-right">40</span>
-                </div>
-
-                <!-- Threshold Slider -->
-                <div class="flex items-center space-x-2">
-                    <span class="text-slate-400 w-14 shrink-0 text-indigo-300 font-semibold">글씨 진하기</span>
-                    <input type="range" id="slider-threshold" min="0" max="200" value="100" oninput="updateFilterFromSliders()" class="w-full accent-indigo-500 bg-slate-800 h-1.5 rounded-lg">
-                    <span id="val-threshold" class="font-mono text-indigo-300 w-8 text-right font-bold">100</span>
-                </div>
-            </div>
-
-            <!-- Live Canvas Image Display -->
-            <div class="flex-1 p-4 md:p-8 flex items-center justify-center checker-bg overflow-auto relative">
-                <div class="relative max-h-full max-w-full flex items-center justify-center shadow-2xl rounded-lg overflow-hidden border border-slate-700/60">
-                    <canvas id="main-canvas" class="max-h-[calc(100vh-250px)] max-w-full object-contain"></canvas>
-                </div>
-
-                <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 text-slate-500 p-6 text-center">
-                    <div class="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mb-4 text-slate-600">
-                        <i data-lucide="image" class="w-8 h-8"></i>
-                    </div>
-                    <p class="text-sm font-semibold text-slate-300">스캔한 책 사진을 올리세요</p>
-                    <p class="text-xs text-slate-500 mt-1 max-w-sm">그림자와 누런 종이 바탕이 제거되고, 글씨와 도표가 선명해진 고화질 PDF로 생성됩니다.</p>
-                </div>
-            </div>
-
-            <!-- Bottom PDF Export Setting Bar -->
-            <div class="h-14 bg-slate-900 border-t border-slate-800 px-4 flex items-center justify-between text-xs">
-                <div class="flex items-center space-x-3">
-                    <label class="flex items-center space-x-1.5">
-                        <span class="text-slate-400">PDF 파일명:</span>
-                        <input type="text" id="pdf-filename" value="스캔도서_보정본" class="bg-slate-800 border border-slate-700 text-slate-200 px-2.5 py-1 rounded text-xs focus:outline-none focus:border-indigo-500 w-36 sm:w-48">
-                    </label>
-
-                    <label class="hidden sm:flex items-center space-x-1.5">
-                        <span class="text-slate-400">용지 규격:</span>
-                        <select id="pdf-paper-size" class="bg-slate-800 border border-slate-700 text-slate-200 px-2 py-1 rounded text-xs focus:outline-none">
-                            <option value="a4">A4 규격 자동 맞춤</option>
-                            <option value="original">사진 원본 비율 유지</option>
-                        </select>
-                    </label>
-                </div>
-
-                <div class="text-slate-400 text-[11px] flex items-center space-x-1">
-                    <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
-                    <span>원본 텍스트·도표 100% 손실 없음</span>
-                </div>
-            </div>
-
-        </div>
+      </div>
+      
+      <div class="flex items-center gap-2">
+        <button onclick="openApiModal()" class="px-3 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 flex items-center gap-1.5 transition">
+          <i data-lucide="key" class="w-3.5 h-3.5"></i>
+          <span>API 키 설정</span>
+        </button>
+        <button onclick="downloadPDF()" class="px-4 py-2 text-xs font-semibold bg-brand-600 hover:bg-brand-500 text-white rounded-lg shadow-md shadow-brand-600/30 flex items-center gap-2 transition">
+          <i data-lucide="file-down" class="w-4 h-4"></i>
+          <span>완성된 PDF 다운로드</span>
+        </button>
+      </div>
     </div>
+  </header>
 
-    <!-- Loading Overlay -->
-    <div id="loading-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center hidden">
-        <div class="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p id="loading-title" class="text-sm font-semibold text-slate-200">고화질 PDF 묶음 생성 중...</p>
-        <p id="loading-sub" class="text-xs text-slate-400 mt-1">페이지 이미지를 고해상도로 변환하고 있습니다.</p>
+  <!-- Main Grid -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    <!-- Left Panel: Input & OCR -->
+    <section class="flex flex-col gap-4">
+      
+      <!-- Upload Box -->
+      <div class="bg-slate-800/50 border border-slate-700/60 rounded-2xl p-4">
+        <h2 class="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+          <i data-lucide="image" class="w-4 h-4 text-brand-500"></i>
+          <span>1. 책 스캔 사진 업로드</span>
+        </h2>
+
+        <div id="drop-zone" class="border-2 border-dashed border-slate-700 hover:border-brand-500/80 bg-slate-900/50 rounded-xl p-6 text-center cursor-pointer transition flex flex-col items-center justify-center min-h-[160px] relative overflow-hidden group">
+          <input type="file" id="file-input" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer z-10" onchange="handleFileSelect(event)">
+          
+          <div id="upload-placeholder" class="flex flex-col items-center">
+            <div class="p-3 bg-slate-800 rounded-full mb-2 group-hover:scale-110 transition">
+              <i data-lucide="upload-cloud" class="w-6 h-6 text-slate-400 group-hover:text-brand-400"></i>
+            </div>
+            <p class="text-xs font-medium text-slate-300">클릭하거나 책 사진을 여기에 드래그하세요</p>
+            <p class="text-[11px] text-slate-500 mt-1">PNG, JPG, WEBP 지원</p>
+          </div>
+
+          <img id="image-preview" class="hidden max-h-48 rounded-lg object-contain border border-slate-700" alt="스캔본 미리보기">
+        </div>
+
+        <div class="mt-3 flex gap-2">
+          <button onclick="runOCR()" id="btn-ocr" class="flex-1 py-2.5 bg-brand-600 hover:bg-brand-500 disabled:bg-slate-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition shadow-lg shadow-brand-600/20">
+            <i data-lucide="wand2" class="w-4 h-4"></i>
+            <span>AI 텍스트 & 표 추출 실행</span>
+          </button>
+          <button onclick="loadSample()" class="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium border border-slate-700">
+            샘플 데이터
+          </button>
+        </div>
+      </div>
+
+      <!-- Editor Box -->
+      <div class="flex-1 bg-slate-800/50 border border-slate-700/60 rounded-2xl p-4 flex flex-col min-h-[350px]">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-sm font-semibold text-slate-300 flex items-center gap-2">
+            <i data-lucide="edit-3" class="w-4 h-4 text-brand-500"></i>
+            <span>2. 추출 내용 수정 (마크다운 에디터)</span>
+          </h2>
+          <span class="text-[11px] text-slate-400">수정 내용이 우측 미리보기에 실시간 반영됩니다</span>
+        </div>
+
+        <textarea id="markdown-input" oninput="updatePreview()" class="w-full flex-1 bg-slate-900 border border-slate-700/80 rounded-xl p-3.5 text-xs text-slate-200 font-mono resize-none focus:outline-none focus:border-brand-500 leading-relaxed" placeholder="사진을 올리고 [AI 텍스트 & 표 추출]을 누르시거나, 여기에 직접 입력해 보세요..."></textarea>
+      </div>
+
+    </section>
+
+    <!-- Right Panel: PDF Preview -->
+    <section class="bg-slate-800/50 border border-slate-700/60 rounded-2xl p-4 flex flex-col h-full overflow-hidden">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-semibold text-slate-300 flex items-center gap-2">
+          <i data-lucide="eye" class="w-4 h-4 text-brand-500"></i>
+          <span>3. 디지털 PDF 실시간 미리보기</span>
+        </h2>
+        <span class="text-[11px] bg-brand-500/10 text-brand-400 px-2.5 py-0.5 rounded-full border border-brand-500/20 font-medium">전공 요약본 템플릿 적용됨</span>
+      </div>
+
+      <!-- PDF Canvas Container -->
+      <div class="flex-1 bg-slate-950 rounded-xl p-4 overflow-y-auto flex justify-center border border-slate-800">
+        <div id="pdf-container" class="pdf-template shadow-2xl rounded-sm">
+          <!-- Rendered HTML Content Goes Here -->
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- API Key Modal -->
+  <div id="api-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-bold text-slate-100 flex items-center gap-2">
+          <i data-lucide="key" class="w-4 h-4 text-brand-500"></i>
+          <span>Gemini API 키 등록</span>
+        </h3>
+        <button onclick="closeApiModal()" class="text-slate-400 hover:text-slate-200">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <p class="text-xs text-slate-400 mb-4 leading-relaxed">
+        사진 속 글자, 표, 수식을 AI가 정밀 파악하여 디지털 텍스트로 전환하기 위해 Google Gemini API 키가 필요합니다. (무료 발급 가능)
+      </p>
+
+      <input type="password" id="api-key-input" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-slate-200 mb-4 focus:outline-none focus:border-brand-500" placeholder="AIzaSy...">
+
+      <div class="flex gap-2">
+        <button onclick="saveApiKey()" class="flex-1 py-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold transition">
+          저장하기
+        </button>
+        <a href="https://aistudio.google.com/app/apikey" target="_blank" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium border border-slate-700 flex items-center gap-1">
+          <span>키 무료 발급</span>
+          <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+        </a>
+      </div>
     </div>
+  </div>
 
-    <!-- JavaScript Application Code -->
-    <script>
-        /* State Management */
-        const state = {
-            pages: [], // List of { id, imgElement, rotation, mode, brightness, contrast, threshold }
-            activePageIndex: 0
-        };
+  <script>
+    // State
+    let currentImageBase64 = null;
+    let apiKey = localStorage.getItem('scanbook_gemini_key') || '';
 
-        window.onload = function() {
-            lucide.createIcons();
-            setupDragAndDrop();
-            loadSampleScanBook();
-        };
+    // Init Icons
+    lucide.createIcons();
 
-        /* Drag & Drop Setup */
-        function setupDragAndDrop() {
-            const dropZone = document.getElementById('drop-zone');
+    // Default Sample Markdown
+    const sampleMarkdown = `# 열역학 제3장: 밀폐계 에너지 해석
+**지정 연습문제 워크북 (Practice Workbook)** | 대상 장: 제3장 (Closed Systems)
 
-            ['dragenter', 'dragover'].forEach(eventName => {
-                dropZone.addEventListener(eventName, (e) => {
-                    e.preventDefault();
-                    dropZone.classList.add('border-indigo-500', 'bg-indigo-950/30');
-                }, false);
-            });
+## Part 1. 필수 공식 요약집
+### 제3장 핵심 수식 및 공식 참고표
 
-            ['dragleave', 'drop'].forEach(eventName => {
-                dropZone.addEventListener(eventName, (e) => {
-                    e.preventDefault();
-                    dropZone.classList.remove('border-indigo-500', 'bg-indigo-950/30');
-                }, false);
-            });
+1. 경계일 (Boundary Work, W_b)
+- 기본 정의: W_b = ∫ P dV
+- 등압 과정 (P = const): W_b = P(V_2 - V_1) = mR(T_2 - T_1)
+- 등온 과정 (T = const): W_b = P_1 V_1 ln(V_2/V_1) = mRT ln(P_1/P_2)
 
-            dropZone.addEventListener('drop', (e) => {
-                const files = e.dataTransfer.files;
-                if (files.length) handleFiles(files);
-            });
+2. 열역학 제1법칙 (밀폐계)
+- 에너지 보존: <mark>Q_in - W_out = ΔE_system</mark>
+- 정지계 (ΔKE = ΔPE = 0): Q - W = ΔU = m(u_2 - u_1)
+- 단위 질량당 식: q - w = Δu
+
+| 열역학 과정 (Process) | 상태 방정식 / 조건 | 경계일 (W_b) 계산 수식 | 특징 및 비고 |
+| :--- | :--- | :--- | :--- |
+| **정적 과정 (Isochoric)** | V = const (dV = 0) | W_b = 0 | 경계 이동이 없으므로 일 = 0 |
+| **등압 과정 (Isobaric)** | P = const | W_b = P (V_2 - V_1) | 피스톤 자유 이동, Q = ΔH |
+| **등온 과정 (Isothermal)** | T = const (PV = const) | W_b = P_1 V_1 ln(V_2 / V_1) | 이상기체의 경우 ΔU = 0 |
+`;
+
+    document.getElementById('markdown-input').value = sampleMarkdown;
+    updatePreview();
+
+    if (apiKey) {
+      document.getElementById('api-key-input').value = apiKey;
+    }
+
+    // Modal Control
+    function openApiModal() { document.getElementById('api-modal').classList.remove('hidden'); }
+    function closeApiModal() { document.getElementById('api-modal').classList.add('hidden'); }
+    function saveApiKey() {
+      const val = document.getElementById('api-key-input').value.trim();
+      if (val) {
+        apiKey = val;
+        localStorage.setItem('scanbook_gemini_key', apiKey);
+        alert('API 키가 저장되었습니다.');
+        closeApiModal();
+      }
+    }
+
+    // File Handling
+    function handleFileSelect(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        currentImageBase64 = e.target.result;
+        const imgEl = document.getElementById('image-preview');
+        imgEl.src = currentImageBase64;
+        imgEl.classList.remove('hidden');
+        document.getElementById('upload-placeholder').classList.add('hidden');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Live Preview
+    function updatePreview() {
+      const text = document.getElementById('markdown-input').value;
+      const htmlContent = marked.parse(text);
+      document.getElementById('pdf-container').innerHTML = htmlContent;
+    }
+
+    // Sample Loader
+    function loadSample() {
+      document.getElementById('markdown-input').value = sampleMarkdown;
+      updatePreview();
+    }
+
+    // Gemini Vision OCR Call
+    async function runOCR() {
+      if (!currentImageBase64) {
+        alert('스캔한 사진을 먼저 업로드해 주세요.');
+        return;
+      }
+      if (!apiKey) {
+        openApiModal();
+        alert('AI 텍스트 추출을 위해 Gemini API 키를 먼저 입력해 주세요.');
+        return;
+      }
+
+      const btn = document.getElementById('btn-ocr');
+      btn.disabled = true;
+      btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>AI 분석 중...</span>`;
+      lucide.createIcons();
+
+      try {
+        const base64Data = currentImageBase64.split(',')[1];
+        const promptText = `사진 속 문서를 한국어 마크다운(Markdown) 형식으로 완벽하게 디지털 복원해 줘.
+- 제목은 #, 소제목은 ##, ### 사용
+- 표(Table)는 마크다운 표 형식 (| | |)으로 작성
+- 중요한 수식이나 핵심 키워드는 <mark>내용</mark> 태그로 감싸기
+- 불필요한 인쇄 잡음이나 손가락은 제외하고 순수 본문 텍스트 및 수식만 추출할 것`;
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { text: promptText },
+                { inline_data: { mime_type: "image/jpeg", data: base64Data } }
+              ]
+            }]
+          })
+        });
+
+        const data = await response.json();
+        if (data.candidates && data.candidates[0].content.parts[0].text) {
+          const resultMd = data.candidates[0].content.parts[0].text;
+          document.getElementById('markdown-input').value = resultMd;
+          updatePreview();
+        } else {
+          alert('텍스트를 추출하지 못했습니다. 이미지 화질을 확인해 주세요.');
         }
-
-        /* Sample Book Generator */
-        function loadSampleScanBook() {
-            state.pages = [];
-
-            // Generate synthetic scanned page with graphics & formulas
-            const c1 = createSamplePageCanvas('제 1 장: 스캔 이미지 고화질 보정', [
-                '■ 본 방식은 AI 텍스트 추출 방식이 아닌, 사진을 깨끗하게 다듬는 방식입니다.',
-                '■ 아래 화학식과 도표처럼 복잡한 원본 그대로 100% 보증되어 PDF에 저장됩니다.',
-                '----------------------------------------------------------',
-                ' [화학 반응식 예시]',
-                '  2H₂ + O₂  ===>  2H₂O  (ΔH = -285.8 kJ/mol)',
-                '  C₆H₁₂O₆ + 6O₂  ===>  6CO₂ + 6H₂O + Energy',
-                '----------------------------------------------------------',
-                '■ 누런 종이 빛깔과 어두운 조명 그림자가 클릭 한 번으로 제거됩니다.'
-            ]);
-
-            const c2 = createSamplePageCanvas('제 2 장: 도표 및 수학 공식 보존 테스트', [
-                ' [수학 삼각함수 공식]',
-                '   sin²(x) + cos²(x) = 1',
-                '   e^(iπ) + 1 = 0',
-                '----------------------------------------------------------',
-                ' [실험데이터 통계 표]',
-                ' ---------------------------------------------',
-                '  구분     |   측정값(A)   |   보정값(B)   |  비고',
-                ' ---------------------------------------------',
-                '  1차 시도 |    98.4%      |    99.9%      | 정상',
-                '  2차 시도 |    97.1%      |    99.8%      | 정상',
-                ' ---------------------------------------------'
-            ]);
-
-            const img1 = new Image();
-            img1.onload = () => {
-                state.pages.push({
-                    id: 'sample-1',
-                    imgElement: img1,
-                    rotation: 0,
-                    mode: 'auto',
-                    brightness: 15,
-                    contrast: 40,
-                    threshold: 100
-                });
-                const img2 = new Image();
-                img2.onload = () => {
-                    state.pages.push({
-                        id: 'sample-2',
-                        imgElement: img2,
-                        rotation: 0,
-                        mode: 'auto',
-                        brightness: 15,
-                        contrast: 40,
-                        threshold: 100
-                    });
-                    state.activePageIndex = 0;
-                    renderApp();
-                };
-                img2.src = c2.toDataURL();
-            };
-            img1.src = c1.toDataURL();
-        }
-
-        function createSamplePageCanvas(title, lines) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 700;
-            canvas.height = 950;
-            const ctx = canvas.getContext('2d');
-
-            // Simulate yellowish shadow paper
-            const grad = ctx.createLinearGradient(0, 0, 700, 950);
-            grad.addColorStop(0, '#f2ebd9');
-            grad.addColorStop(1, '#dfd3b5');
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, 700, 950);
-
-            // Add subtle shadow vignette
-            ctx.fillStyle = 'rgba(60,40,10,0.12)';
-            ctx.beginPath();
-            ctx.arc(350, 475, 450, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Text content
-            ctx.fillStyle = '#221a0f';
-            ctx.font = 'bold 22px "Noto Sans KR", sans-serif';
-            ctx.fillText(title, 50, 80);
-
-            ctx.font = '15px monospace';
-            let y = 140;
-            lines.forEach(line => {
-                ctx.fillText(line, 50, y);
-                y += 35;
-            });
-
-            ctx.font = '12px sans-serif';
-            ctx.fillStyle = '#786851';
-            ctx.fillText('- ScanBook Studio Image Bundle Demo -', 230, 900);
-
-            return canvas;
-        }
-
-        /* Image File Upload Handling */
-        function handleFileUpload(e) {
-            if (e.target.files) handleFiles(e.target.files);
-        }
-
-        function handleFiles(files) {
-            const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
-            if (!imageFiles.length) return;
-
-            let count = 0;
-            imageFiles.forEach(file => {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        state.pages.push({
-                            id: 'page-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
-                            imgElement: img,
-                            rotation: 0,
-                            mode: 'auto',
-                            brightness: 15,
-                            contrast: 40,
-                            threshold: 100
-                        });
-                        count++;
-                        if (count === imageFiles.length) {
-                            state.activePageIndex = state.pages.length - count;
-                            renderApp();
-                        }
-                    };
-                    img.src = event.target.result;
-                };
-                reader.readAsDataURL(file);
-            });
-        }
-
-        /* Render Main App UI */
-        function renderApp() {
-            renderThumbnails();
-            renderMainCanvas();
-            updateControlInputs();
-            lucide.createIcons();
-        }
-
-        /* Thumbnails Panel Rendering */
-        function renderThumbnails() {
-            const listEl = document.getElementById('thumbnail-list');
-            document.getElementById('total-page-count').innerText = state.pages.length;
-            listEl.innerHTML = '';
-
-            if (state.pages.length === 0) {
-                document.getElementById('empty-state').classList.remove('hidden');
-                return;
-            } else {
-                document.getElementById('empty-state').classList.add('hidden');
-            }
-
-            state.pages.forEach((page, index) => {
-                const isActive = index === state.activePageIndex;
-                const card = document.createElement('div');
-                card.className = `relative flex items-center space-x-3 p-2 rounded-xl border transition cursor-pointer group ${
-                    isActive ? 'bg-indigo-950/40 border-indigo-500 ring-1 ring-indigo-500/50' : 'bg-slate-900 border-slate-800 hover:border-slate-700'
-                }`;
-                card.onclick = () => {
-                    state.activePageIndex = index;
-                    renderApp();
-                };
-
-                // Canvas mini thumbnail
-                const miniCanvas = processImageCanvas(page, 120);
-
-                card.innerHTML = `
-                    <div class="w-12 h-16 bg-slate-950 rounded overflow-hidden flex items-center justify-center shrink-0 border border-slate-800">
-                        <img src="${miniCanvas.toDataURL()}" class="max-w-full max-h-full object-contain">
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-xs font-semibold text-slate-200">페이지 ${index + 1}</p>
-                        <p class="text-[10px] text-slate-500 truncate mt-0.5">${page.mode === 'auto' ? '자동 흑백 보정' : page.mode}</p>
-                    </div>
-                    <div class="flex flex-col space-y-1 opacity-60 group-hover:opacity-100 transition">
-                        <button onclick="event.stopPropagation(); movePage(${index}, -1)" class="p-0.5 hover:text-indigo-400 text-slate-400 ${index === 0 ? 'invisible' : ''}"><i data-lucide="chevron-up" class="w-3.5 h-3.5"></i></button>
-                        <button onclick="event.stopPropagation(); movePage(${index}, 1)" class="p-0.5 hover:text-indigo-400 text-slate-400 ${index === state.pages.length - 1 ? 'invisible' : ''}"><i data-lucide="chevron-down" class="w-3.5 h-3.5"></i></button>
-                        <button onclick="event.stopPropagation(); deletePage(${index})" class="p-0.5 hover:text-rose-400 text-slate-400" title="삭제"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
-                    </div>
-                `;
-                listEl.appendChild(card);
-            });
-        }
-
-        function movePage(index, dir) {
-            const target = index + dir;
-            if (target < 0 || target >= state.pages.length) return;
-            const temp = state.pages[index];
-            state.pages[index] = state.pages[target];
-            state.pages[target] = temp;
-            state.activePageIndex = target;
-            renderApp();
-        }
-
-        function deletePage(index) {
-            state.pages.splice(index, 1);
-            if (state.activePageIndex >= state.pages.length) {
-                state.activePageIndex = Math.max(0, state.pages.length - 1);
-            }
-            renderApp();
-        }
-
-        function clearAllPages() {
-            if (state.pages.length && confirm('모든 스캔 페이지를 삭제하시겠습니까?')) {
-                state.pages = [];
-                state.activePageIndex = 0;
-                renderApp();
-            }
-        }
-
-        /* Main Processing Canvas Rendering */
-        function renderMainCanvas() {
-            const page = state.pages[state.activePageIndex];
-            const canvas = document.getElementById('main-canvas');
-            if (!page) {
-                canvas.width = 0;
-                canvas.height = 0;
-                return;
-            }
-
-            const processedCanvas = processImageCanvas(page);
-            canvas.width = processedCanvas.width;
-            canvas.height = processedCanvas.height;
-
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(processedCanvas, 0, 0);
-        }
-
-        /* Core Image Filter Processor (Fast JS Pixel Manipulation) */
-        function processImageCanvas(page, maxThumbWidth = null) {
-            const img = page.imgElement;
-            const rotation = page.rotation || 0;
-            const isRotatedQuarter = (rotation / 90) % 2 !== 0;
-
-            let srcWidth = isRotatedQuarter ? img.height : img.width;
-            let srcHeight = isRotatedQuarter ? img.width : img.height;
-
-            let scale = 1;
-            if (maxThumbWidth && srcWidth > maxThumbWidth) {
-                scale = maxThumbWidth / srcWidth;
-            }
-
-            const width = Math.round(srcWidth * scale);
-            const height = Math.round(srcHeight * scale);
-
-            const canvas = document.createElement('canvas');
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-
-            // Rotation transform
-            ctx.save();
-            ctx.translate(width / 2, height / 2);
-            ctx.rotate((rotation * Math.PI) / 180);
-            if (isRotatedQuarter) {
-                ctx.drawImage(img, -height / 2, -width / 2, height, width);
-            } else {
-                ctx.drawImage(img, -width / 2, -height / 2, width, height);
-            }
-            ctx.restore();
-
-            if (page.mode === 'color' && page.brightness === 0 && page.contrast === 0) {
-                return canvas; // Return raw color
-            }
-
-            // Pixel adjustment pipeline
-            const imgData = ctx.getImageData(0, 0, width, height);
-            const d = imgData.data;
-
-            const b = parseInt(page.brightness || 0);
-            const c = parseInt(page.contrast || 0);
-            const factor = (259 * (c + 255)) / (255 * (259 - c));
-            const blackPoint = parseInt(page.threshold || 100); 
-            let whitePoint = Math.max(10, 210 - b); // Background clipping point
-
-            if (blackPoint >= whitePoint) {
-                whitePoint = blackPoint + 1;
-            }
-
-            const mode = page.mode || 'auto';
-
-            for (let i = 0; i < d.length; i += 4) {
-                let r = d[i];
-                let g = d[i + 1];
-                let bVal = d[i + 2];
-
-                // Contrast & Brightness adjustment for base color
-                if (c !== 0 || b !== 0 && mode !== 'auto') {
-                    r = factor * (r - 128) + 128 + b;
-                    g = factor * (g - 128) + 128 + b;
-                    bVal = factor * (bVal - 128) + 128 + b;
-                }
-
-                let gray = 0.299 * r + 0.587 * g + 0.114 * bVal;
-
-                if (mode === 'grayscale') {
-                    d[i] = d[i + 1] = d[i + 2] = Math.min(255, Math.max(0, gray));
-                } else if (mode === 'auto') {
-                    // Smart Document Enhancement (Black/White Level Stretch)
-                    // Apply base contrast/brightness to grayscale first
-                    if (c !== 0 || b !== 0) {
-                         gray = factor * (gray - 128) + 128 + (b * 0.5);
-                    }
-
-                    if (gray > whitePoint) {
-                        gray = 255; // Clear paper background entirely
-                    } else if (gray < blackPoint) {
-                        gray = 0; // Thicken and darken text completely
-                    } else {
-                        // Smooth edge anti-aliasing interpolation
-                        gray = ((gray - blackPoint) / (whitePoint - blackPoint)) * 255;
-                    }
-                    d[i] = d[i + 1] = d[i + 2] = Math.min(255, Math.max(0, gray));
-                } else { // Color mode with brightness/contrast
-                    d[i] = Math.min(255, Math.max(0, r));
-                    d[i + 1] = Math.min(255, Math.max(0, g));
-                    d[i + 2] = Math.min(255, Math.max(0, bVal));
-                }
-            }
-
-            ctx.putImageData(imgData, 0, 0);
-            return canvas;
-        }
-
-        /* Filter Controls Sync */
-        function updateControlInputs() {
-            const page = state.pages[state.activePageIndex];
-            if (!page) return;
-
-            document.getElementById('slider-brightness').value = page.brightness;
-            document.getElementById('slider-contrast').value = page.contrast;
-            document.getElementById('slider-threshold').value = page.threshold;
-
-            document.getElementById('val-brightness').innerText = page.brightness;
-            document.getElementById('val-contrast').innerText = page.contrast;
-            document.getElementById('val-threshold').innerText = page.threshold;
-
-            // Update mode buttons state
-            ['auto', 'grayscale', 'color'].forEach(m => {
-                const btn = document.getElementById(`mode-btn-${m}`);
-                if (page.mode === m) {
-                    btn.className = "px-2.5 py-1 rounded-md border font-medium transition flex items-center space-x-1 bg-indigo-600 border-indigo-500 text-white";
-                } else {
-                    btn.className = "px-2.5 py-1 rounded-md border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 transition";
-                }
-            });
-        }
-
-        function setMode(modeName) {
-            const page = state.pages[state.activePageIndex];
-            if (page) {
-                page.mode = modeName;
-                renderApp();
-            }
-        }
-
-        function rotateCurrentPage(deg) {
-            const page = state.pages[state.activePageIndex];
-            if (page) {
-                page.rotation = (page.rotation + deg + 360) % 360;
-                renderApp();
-            }
-        }
-
-        function updateFilterFromSliders() {
-            const page = state.pages[state.activePageIndex];
-            if (!page) return;
-
-            page.brightness = parseInt(document.getElementById('slider-brightness').value);
-            page.contrast = parseInt(document.getElementById('slider-contrast').value);
-            page.threshold = parseInt(document.getElementById('slider-threshold').value);
-
-            document.getElementById('val-brightness').innerText = page.brightness;
-            document.getElementById('val-contrast').innerText = page.contrast;
-            document.getElementById('val-threshold').innerText = page.threshold;
-
-            renderMainCanvas();
-            renderThumbnails();
-        }
-
-        function resetCurrentFilters() {
-            const page = state.pages[state.activePageIndex];
-            if (page) {
-                page.brightness = 15;
-                page.contrast = 40;
-                page.threshold = 100;
-                page.mode = 'auto';
-                page.rotation = 0;
-                renderApp();
-            }
-        }
-
-        /* High Quality Image PDF Export Implementation */
-        async function exportToPdfBundle() {
-            if (!state.pages.length) {
-                alert('PDF로 내보낼 스캔 사진을 등록하세요.');
-                return;
-            }
-
-            const modal = document.getElementById('loading-modal');
-            modal.classList.remove('hidden');
-
-            // Allow UI to refresh before heavy canvas generation
-            await new Promise(resolve => setTimeout(resolve, 100));
-
-            try {
-                const { jsPDF } = window.jspdf;
-                const paperSizeOpt = document.getElementById('pdf-paper-size').value;
-                const fileName = (document.getElementById('pdf-filename').value.trim() || 'ScanBook_Document') + '.pdf';
-
-                let pdf = null;
-
-                for (let i = 0; i < state.pages.length; i++) {
-                    const pageCanvas = processImageCanvas(state.pages[i]);
-                    const imgData = pageCanvas.toDataURL('image/jpeg', 0.92);
-
-                    const imgW = pageCanvas.width;
-                    const imgH = pageCanvas.height;
-
-                    if (paperSizeOpt === 'original') {
-                        // Keep exact picture dimension ratio
-                        const orientation = imgW > imgH ? 'l' : 'p';
-                        if (i === 0) {
-                            pdf = new jsPDF({ orientation: orientation, unit: 'px', format: [imgW, imgH] });
-                        } else {
-                            pdf.addPage([imgW, imgH], orientation);
-                        }
-                        pdf.addImage(imgData, 'JPEG', 0, 0, imgW, imgH);
-                    } else {
-                        // Standard A4 Auto-Fit
-                        const orientation = imgW > imgH ? 'l' : 'p';
-                        if (i === 0) {
-                            pdf = new jsPDF({ orientation: orientation, unit: 'mm', format: 'a4' });
-                        } else {
-                            pdf.addPage('a4', orientation);
-                        }
-
-                        const pdfW = pdf.internal.pageSize.getWidth();
-                        const pdfH = pdf.internal.pageSize.getHeight();
-
-                        const ratio = Math.min(pdfW / imgW, pdfH / imgH);
-                        const renderW = imgW * ratio;
-                        const renderH = imgH * ratio;
-
-                        const posX = (pdfW - renderW) / 2;
-                        const posY = (pdfH - renderH) / 2;
-
-                        pdf.addImage(imgData, 'JPEG', posX, posY, renderW, renderH);
-                    }
-                }
-
-                pdf.save(fileName);
-            } catch (err) {
-                alert('PDF 생성 중 오류가 발생했습니다: ' + err.message);
-            } finally {
-                modal.classList.add('hidden');
-            }
-        }
-    </script>
+      } catch (err) {
+        console.error(err);
+        alert('AI 분석 중 오류가 발생했습니다. API 키 또는 네트워크 상태를 확인하세요.');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-lucide="wand2" class="w-4 h-4"></i><span>AI 텍스트 & 표 추출 실행</span>`;
+        lucide.createIcons();
+      }
+    }
+
+    // PDF Download
+    function downloadPDF() {
+      const element = document.getElementById('pdf-container');
+      const opt = {
+        margin:       10,
+        filename:     'ScanBook_Digital_Summary.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      html2pdf().set(opt).from(element).save();
+    }
+  </script>
 </body>
 </html>
