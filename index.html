@@ -127,7 +127,7 @@
         img.src = e.target.result;
         img.onload = function() {
           const canvas = document.createElement('canvas');
-          const maxDim = 1200; // 용량 초과 방지용 리사이징 최적화
+          const maxDim = 1200; 
           let width = img.width, height = img.height;
           if (width > maxDim || height > maxDim) {
             if (width > height) { height = Math.round((height * maxDim) / width); width = maxDim; } 
@@ -154,55 +154,62 @@
 
       const btn = document.getElementById('btn-ocr');
       btn.disabled = true;
-      btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>AI 분석 중...</span>`;
+      btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>모델 탐색 및 분석 중...</span>`;
       lucide.createIcons();
 
-      // ★ 오류 해결의 핵심: 가능한 모든 모델을 순서대로 시도하는 자동 폴백 루프
-      const fallbackModels = [
-        'gemini-1.5-flash',
-        'gemini-1.5-pro',
-        'gemini-1.5-flash-8b',
-        'gemini-pro-vision',
-        'gemini-1.0-pro-vision'
-      ];
-      
-      const base64Data = currentImageBase64.split(',')[1];
-      const promptText = "첨부된 책/문서 이미지의 텍스트, 수식, 표를 마크다운(Markdown) 형식으로 최대한 정확하게 추출해줘. 문서의 큰 제목은 #, 소제목은 ##를 사용하고, 강조할 수식이나 핵심 단어는 <mark>내용</mark> 태그로 감싸줘. 표는 반드시 마크다운 테이블 형식(| |)으로 변환해줘.";
-      
-      let successData = null;
-      let lastErrorMessage = '';
-
-      for (const model of fallbackModels) {
-        try {
-          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: promptText }, { inline_data: { mime_type: "image/jpeg", data: base64Data } }] }]
-            })
-          });
-          const data = await res.json();
-          if (res.ok && !data.error) {
-            successData = data;
-            break; // 작동하는 모델을 찾으면 즉시 중단하고 넘어감
-          } else {
-            lastErrorMessage = data.error?.message || '알 수 없는 오류';
-          }
-        } catch (e) {
-          lastErrorMessage = e.message;
+      try {
+        // 1. API 키를 통해 현재 사용 가능한 모델 리스트 동적 확보
+        const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+        if (!modelsRes.ok) {
+          const err = await modelsRes.json();
+          throw new Error(`API 키 검증 실패: ${err.error?.message || '권한이 없습니다.'}`);
         }
-      }
+        
+        const modelsData = await modelsRes.json();
+        if (!modelsData.models || modelsData.models.length === 0) {
+          throw new Error("이 API 키로 사용할 수 있는 AI 모델이 없습니다.");
+        }
 
-      if (successData && successData.candidates && successData.candidates[0].content) {
-        document.getElementById('markdown-input').value = successData.candidates[0].content.parts[0].text;
-        updatePreview();
-      } else {
-        alert(`분석 실패. API 키의 할당량이 초과되었거나 사용 제한 상태입니다.\n\n상세 오류: ${lastErrorMessage}`);
-      }
+        // 2. 이미지 처리를 지원하는 모델 중 가장 적합한 것 선택
+        const validModels = modelsData.models.filter(m => m.supportedGenerationMethods?.includes("generateContent"));
+        const selectedModel = validModels.find(m => m.name.includes("1.5-flash")) || 
+                              validModels.find(m => m.name.includes("1.5-pro")) || 
+                              validModels[0];
 
-      btn.disabled = false;
-      btn.innerHTML = `<i data-lucide="wand2" class="w-4 h-4"></i><span>AI 텍스트 & 표 추출 실행</span>`;
-      lucide.createIcons();
+        if (!selectedModel) {
+          throw new Error("이미지 분석을 지원하는 모델을 계정에서 찾을 수 없습니다.");
+        }
+
+        const exactModelName = selectedModel.name.replace("models/", "");
+
+        // 3. 찾아낸 정확한 모델명으로 이미지 분석 요청
+        const base64Data = currentImageBase64.split(',')[1];
+        const promptText = "첨부된 책/문서 이미지의 텍스트, 수식, 표를 마크다운(Markdown) 형식으로 최대한 정확하게 추출해줘. 문서의 큰 제목은 #, 소제목은 ##를 사용하고, 강조할 수식이나 핵심 단어는 <mark>내용</mark> 태그로 감싸줘. 표는 반드시 마크다운 테이블 형식(| |)으로 변환해줘.";
+        const endpointUrl = `https://generativelanguage.googleapis.com/v1beta/models/${exactModelName}:generateContent?key=${apiKey}`;
+
+        const response = await fetch(endpointUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: promptText }, { inline_data: { mime_type: "image/jpeg", data: base64Data } }] }]
+          })
+        });
+
+        const data = await response.json();
+        
+        if (response.ok && data.candidates && data.candidates[0].content) {
+          document.getElementById('markdown-input').value = data.candidates[0].content.parts[0].text;
+          updatePreview();
+        } else {
+          throw new Error(data.error?.message || '이미지 분석에 실패했습니다.');
+        }
+      } catch (e) {
+        alert(`분석 실패: ${e.message}`);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-lucide="wand2" class="w-4 h-4"></i><span>AI 텍스트 & 표 추출 실행</span>`;
+        lucide.createIcons();
+      }
     }
 
     function downloadPDF() {
