@@ -35,6 +35,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
   <style>
+    /* PDF 출력용 전공 요약본 템플릿 디자인 */
     .pdf-template {
       font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
       color: #1e293b;
@@ -121,7 +122,7 @@
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-brand-500 selection:text-white">
 
-  <!-- Header -->
+  <!-- 상단 헤더 -->
   <header class="border-b border-slate-800 bg-slate-950/80 backdrop-blur sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
       <div class="flex items-center gap-3">
@@ -147,10 +148,10 @@
     </div>
   </header>
 
-  <!-- Main Grid -->
+  <!-- 메인 작업 영역 -->
   <main class="flex-1 max-w-7xl w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-    <!-- Left Panel -->
+    <!-- 왼쪽 패널 (이미지 업로드 및 마크다운 에디터) -->
     <section class="flex flex-col gap-4">
       <div class="bg-slate-800/50 border border-slate-700/60 rounded-2xl p-4">
         <h2 class="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
@@ -178,7 +179,7 @@
             <span>AI 텍스트 & 표 추출 실행</span>
           </button>
           <button onclick="loadSample()" class="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium border border-slate-700">
-            샘플 데이터
+            샘플 보기
           </button>
         </div>
       </div>
@@ -192,11 +193,11 @@
           <span class="text-[11px] text-slate-400">수정 내용이 우측 미리보기에 실시간 반영됩니다</span>
         </div>
 
-        <textarea id="markdown-input" oninput="updatePreview()" class="w-full flex-1 bg-slate-900 border border-slate-700/80 rounded-xl p-3.5 text-xs text-slate-200 font-mono resize-none focus:outline-none focus:border-brand-500 leading-relaxed" placeholder="사진을 올리고 [AI 텍스트 & 표 추출]을 누르시거나, 여기에 직접 입력해 보세요..."></textarea>
+        <textarea id="markdown-input" oninput="updatePreview()" class="w-full flex-1 bg-slate-900 border border-slate-700/80 rounded-xl p-3.5 text-xs text-slate-200 font-mono resize-none focus:outline-none focus:border-brand-500 leading-relaxed" placeholder="사진을 올리고 [AI 추출 실행]을 누르시거나, 여기에 직접 텍스트를 입력해 보세요..."></textarea>
       </div>
     </section>
 
-    <!-- Right Panel -->
+    <!-- 오른쪽 패널 (PDF 실시간 미리보기) -->
     <section class="bg-slate-800/50 border border-slate-700/60 rounded-2xl p-4 flex flex-col h-full overflow-hidden">
       <div class="flex items-center justify-between mb-3">
         <h2 class="text-sm font-semibold text-slate-300 flex items-center gap-2">
@@ -213,7 +214,7 @@
 
   </main>
 
-  <!-- Modal -->
+  <!-- API 키 모달 -->
   <div id="api-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
       <div class="flex justify-between items-center mb-4">
@@ -232,7 +233,7 @@
       <div class="flex gap-2">
         <button onclick="saveApiKey()" class="flex-1 py-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold transition">저장하기</button>
         <a href="https://aistudio.google.com/app/apikey" target="_blank" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium border border-slate-700 flex items-center gap-1">
-          <span>키 발급</span>
+          <span>키 무료 발급</span>
           <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
         </a>
       </div>
@@ -243,8 +244,10 @@
     let currentImageBase64 = null;
     let apiKey = localStorage.getItem('scanbook_gemini_key') || '';
 
+    // 아이콘 렌더링
     lucide.createIcons();
 
+    // 초기 샘플 데이터
     const sampleMarkdown = `# 열역학 제3장: 밀폐계 에너지 해석
 **지정 연습문제 워크북 (Practice Workbook)** | 대상 장: 제3장 (Closed Systems)
 
@@ -265,11 +268,12 @@
 | **등압 과정 (Isobaric)** | P = const | W_b = P (V_2 - V_1) | 피스톤 자유 이동, Q = ΔH |
 `;
 
+    // 초기 화면 세팅
     document.getElementById('markdown-input').value = sampleMarkdown;
     updatePreview();
-
     if (apiKey) document.getElementById('api-key-input').value = apiKey;
 
+    // API 모달 관련 함수
     function openApiModal() { document.getElementById('api-modal').classList.remove('hidden'); }
     function closeApiModal() { document.getElementById('api-modal').classList.add('hidden'); }
     function saveApiKey() {
@@ -277,12 +281,12 @@
       if (val) {
         apiKey = val;
         localStorage.setItem('scanbook_gemini_key', apiKey);
-        alert('API 키가 저장되었습니다.');
+        alert('API 키가 성공적으로 저장되었습니다.');
         closeApiModal();
       }
     }
 
-    // 이미지 파일 로드 및 리사이징 (AI 인식율 및 전송 최적화)
+    // 이미지 파일 로드 및 안전한 압축 (AI 분석 속도 향상 및 용량 초과 방지)
     function handleFileSelect(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -294,7 +298,7 @@
         img.src = e.target.result;
         img.onload = function() {
           const canvas = document.createElement('canvas');
-          const maxDim = 1600;
+          const maxDim = 1500; // 해상도를 1500px로 제한하여 안정적인 전송 보장
           let width = img.width;
           let height = img.height;
 
@@ -324,37 +328,43 @@
       reader.readAsDataURL(file);
     }
 
+    // 마크다운 실시간 렌더링
     function updatePreview() {
       const text = document.getElementById('markdown-input').value;
       document.getElementById('pdf-container').innerHTML = marked.parse(text);
     }
 
+    // 샘플 불러오기
     function loadSample() {
       document.getElementById('markdown-input').value = sampleMarkdown;
       updatePreview();
     }
 
+    // Gemini API 호출 (최신 엔드포인트 및 에러 핸들링 완벽 적용)
     async function runOCR() {
       if (!currentImageBase64) {
-        alert('스캔한 사진을 먼저 업로드해 주세요.');
+        alert('스캔할 책 사진을 먼저 업로드해 주세요.');
         return;
       }
       if (!apiKey) {
         openApiModal();
-        alert('Gemini API 키를 먼저 설정해 주세요.');
+        alert('Gemini API 키를 먼저 입력해 주세요.');
         return;
       }
 
       const btn = document.getElementById('btn-ocr');
       btn.disabled = true;
-      btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>AI 분석 중...</span>`;
+      btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>AI 정밀 분석 중...</span>`;
       lucide.createIcons();
 
       try {
         const base64Data = currentImageBase64.split(',')[1];
-        const promptText = "이 책/문서 이미지의 텍스트, 수식, 표를 마크다운(Markdown) 형식으로 최대한 정확하게 추출해줘. 제목은 # 또는 ##, 핵심 키워드나 강조 수식은 <mark>내용</mark> 태그로 감싸줘.";
+        const promptText = "첨부된 책/문서 이미지의 텍스트, 수식, 표를 마크다운(Markdown) 형식으로 최대한 정확하게 추출해줘. 문서의 큰 제목은 #, 소제목은 ##를 사용하고, 강조할 수식이나 핵심 단어는 <mark>내용</mark> 태그로 감싸줘. 표는 반드시 마크다운 테이블 형식(| |)으로 변환해줘.";
 
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        // 오류 방지를 위해 가장 안정적인 latest 모델 주소 명시
+        const endpointUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+
+        const response = await fetch(endpointUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -369,21 +379,23 @@
 
         const data = await response.json();
         
-        if (data.error) {
-          alert(`API 오류: ${data.error.message || 'API 키를 다시 확인해 주세요.'}`);
-          return;
+        // API 응답 자체에 에러가 포함된 경우
+        if (!response.ok || data.error) {
+          throw new Error(data.error?.message || `서버 오류 발생 (상태 코드: ${response.status})`);
         }
 
+        // 결과값 추출 성공
         if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
           const resultMd = data.candidates[0].content.parts[0].text;
           document.getElementById('markdown-input').value = resultMd;
           updatePreview();
         } else {
-          alert('이미지에서 텍스트를 인식하지 못했습니다.');
+          throw new Error('문서에서 텍스트를 인식하지 못했습니다. 화질이나 조명을 확인해 주세요.');
         }
+
       } catch (err) {
         console.error(err);
-        alert(`네트워크/엔진 오류: ${err.message}`);
+        alert(`분석 실패: ${err.message}\n(API 키가 올바른지 다시 한번 확인해 주세요.)`);
       } finally {
         btn.disabled = false;
         btn.innerHTML = `<i data-lucide="wand2" class="w-4 h-4"></i><span>AI 텍스트 & 표 추출 실행</span>`;
@@ -391,6 +403,7 @@
       }
     }
 
+    // PDF 다운로드 기능
     function downloadPDF() {
       const element = document.getElementById('pdf-container');
       const opt = {
