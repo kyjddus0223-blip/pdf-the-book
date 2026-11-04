@@ -193,4 +193,217 @@
           <span class="text-[11px] text-slate-400">수정 내용이 우측 미리보기에 실시간 반영됩니다</span>
         </div>
 
-        <textarea id="markdown-input" oninput="updatePreview()" class="w-full flex-1 bg-slate-900 border border-slate-700/80 rounded-xl p-3.5 text-xs text-slate-200 font-mono resize-none focus:outline-none focus:border-brand-500 leading-relaxed" placeholder="사진
+        <textarea id="markdown-input" oninput="updatePreview()" class="w-full flex-1 bg-slate-900 border border-slate-700/80 rounded-xl p-3.5 text-xs text-slate-200 font-mono resize-none focus:outline-none focus:border-brand-500 leading-relaxed" placeholder="사진을 올리고 [AI 추출 실행]을 누르시거나, 여기에 직접 텍스트를 입력해 보세요..."></textarea>
+      </div>
+    </section>
+
+    <!-- 오른쪽 패널 -->
+    <section class="bg-slate-800/50 border border-slate-700/60 rounded-2xl p-4 flex flex-col h-full overflow-hidden">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-semibold text-slate-300 flex items-center gap-2">
+          <i data-lucide="eye" class="w-4 h-4 text-brand-500"></i>
+          <span>3. 디지털 PDF 실시간 미리보기</span>
+        </h2>
+        <span class="text-[11px] bg-brand-500/10 text-brand-400 px-2.5 py-0.5 rounded-full border border-brand-500/20 font-medium">전공 요약본 템플릿 적용됨</span>
+      </div>
+
+      <div class="flex-1 bg-slate-950 rounded-xl p-4 overflow-y-auto flex justify-center border border-slate-800">
+        <div id="pdf-container" class="pdf-template shadow-2xl rounded-sm"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- API 키 모달 -->
+  <div id="api-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-bold text-slate-100 flex items-center gap-2">
+          <i data-lucide="key" class="w-4 h-4 text-brand-500"></i>
+          <span>Gemini API 키 등록</span>
+        </h3>
+        <button onclick="closeApiModal()" class="text-slate-400 hover:text-slate-200">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <p class="text-xs text-slate-400 mb-4 leading-relaxed">
+        사진 속 글자, 표, 수식을 AI가 정밀 파악하여 디지털 텍스트로 전환하기 위해 Google Gemini API 키가 필요합니다.
+      </p>
+      <input type="password" id="api-key-input" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-slate-200 mb-4 focus:outline-none focus:border-brand-500" placeholder="AIzaSy...">
+      <div class="flex gap-2">
+        <button onclick="saveApiKey()" class="flex-1 py-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold transition">저장하기</button>
+        <a href="https://aistudio.google.com/app/apikey" target="_blank" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium border border-slate-700 flex items-center gap-1">
+          <span>키 무료 발급</span>
+          <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentImageBase64 = null;
+    let apiKey = localStorage.getItem('scanbook_gemini_key') || '';
+
+    lucide.createIcons();
+
+    const sampleMarkdown = `# 열역학 제3장: 밀폐계 에너지 해석
+**지정 연습문제 워크북 (Practice Workbook)** | 대상 장: 제3장 (Closed Systems)
+
+## Part 1. 필수 공식 요약집
+### 제3장 핵심 수식 및 공식 참고표
+
+1. 경계일 (Boundary Work, W_b)
+- 기본 정의: W_b = ∫ P dV
+- 등압 과정 (P = const): W_b = P(V_2 - V_1) = mR(T_2 - T_1)
+
+2. 열역학 제1법칙 (밀폐계)
+- 에너지 보존: <mark>Q_in - W_out = ΔE_system</mark>
+- 정지계 (ΔKE = ΔPE = 0): Q - W = ΔU = m(u_2 - u_1)
+
+| 열역학 과정 (Process) | 상태 방정식 / 조건 | 경계일 (W_b) 계산 수식 | 특징 및 비고 |
+| :--- | :--- | :--- | :--- |
+| **정적 과정 (Isochoric)** | V = const (dV = 0) | W_b = 0 | 경계 이동이 없으므로 일 = 0 |
+| **등압 과정 (Isobaric)** | P = const | W_b = P (V_2 - V_1) | 피스톤 자유 이동, Q = ΔH |
+`;
+
+    document.getElementById('markdown-input').value = sampleMarkdown;
+    updatePreview();
+    if (apiKey) document.getElementById('api-key-input').value = apiKey;
+
+    function openApiModal() { document.getElementById('api-modal').classList.remove('hidden'); }
+    function closeApiModal() { document.getElementById('api-modal').classList.add('hidden'); }
+    function saveApiKey() {
+      const val = document.getElementById('api-key-input').value.trim();
+      if (val) {
+        apiKey = val;
+        localStorage.setItem('scanbook_gemini_key', apiKey);
+        alert('API 키가 성공적으로 저장되었습니다.');
+        closeApiModal();
+      }
+    }
+
+    function handleFileSelect(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const img = new Image();
+      const reader = new FileReader();
+
+      reader.onload = function(e) {
+        img.src = e.target.result;
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const maxDim = 1500;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          currentImageBase64 = canvas.toDataURL('image/jpeg', 0.85);
+
+          const imgEl = document.getElementById('image-preview');
+          imgEl.src = currentImageBase64;
+          imgEl.classList.remove('hidden');
+          document.getElementById('upload-placeholder').classList.add('hidden');
+        };
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function updatePreview() {
+      const text = document.getElementById('markdown-input').value;
+      document.getElementById('pdf-container').innerHTML = marked.parse(text);
+    }
+
+    function loadSample() {
+      document.getElementById('markdown-input').value = sampleMarkdown;
+      updatePreview();
+    }
+
+    async function runOCR() {
+      if (!currentImageBase64) {
+        alert('스캔할 책 사진을 먼저 업로드해 주세요.');
+        return;
+      }
+      if (!apiKey) {
+        openApiModal();
+        alert('Gemini API 키를 먼저 입력해 주세요.');
+        return;
+      }
+
+      const btn = document.getElementById('btn-ocr');
+      btn.disabled = true;
+      btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>AI 정밀 분석 중...</span>`;
+      lucide.createIcons();
+
+      try {
+        const base64Data = currentImageBase64.split(',')[1];
+        const promptText = "첨부된 책/문서 이미지의 텍스트, 수식, 표를 마크다운(Markdown) 형식으로 최대한 정확하게 추출해줘. 문서의 큰 제목은 #, 소제목은 ##를 사용하고, 강조할 수식이나 핵심 단어는 <mark>내용</mark> 태그로 감싸줘. 표는 반드시 마크다운 테이블 형식(| |)으로 변환해줘.";
+
+        // 오류 해결: 지원이 종료된 모델명 대신 최신 gemini-2.5-flash 모델 적용 완료
+        const endpointUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+        const response = await fetch(endpointUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { text: promptText },
+                { inline_data: { mime_type: "image/jpeg", data: base64Data } }
+              ]
+            }]
+          })
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok || data.error) {
+          throw new Error(data.error?.message || `서버 오류 발생 (상태 코드: ${response.status})`);
+        }
+
+        if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
+          const resultMd = data.candidates[0].content.parts[0].text;
+          document.getElementById('markdown-input').value = resultMd;
+          updatePreview();
+        } else {
+          throw new Error('문서에서 텍스트를 인식하지 못했습니다. 화질이나 조명을 확인해 주세요.');
+        }
+
+      } catch (err) {
+        console.error(err);
+        alert(`분석 실패: ${err.message}\n(API 키가 올바른지 다시 한번 확인해 주세요.)`);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-lucide="wand2" class="w-4 h-4"></i><span>AI 텍스트 & 표 추출 실행</span>`;
+        lucide.createIcons();
+      }
+    }
+
+    function downloadPDF() {
+      const element = document.getElementById('pdf-container');
+      const opt = {
+        margin:       10,
+        filename:     'ScanBook_Digital_Summary.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      html2pdf().set(opt).from(element).save();
+    }
+  </script>
+</body>
+</html>
